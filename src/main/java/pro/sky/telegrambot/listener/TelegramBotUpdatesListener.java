@@ -3,10 +3,12 @@ package pro.sky.telegrambot.listener;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.SendMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.sky.telegrambot.service.NotificationTaskService;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
@@ -14,7 +16,10 @@ import java.util.List;
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
 
-    private Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
+    private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
+
+    @Autowired
+    private NotificationTaskService notificationTaskService;
 
     @Autowired
     private TelegramBot telegramBot;
@@ -29,8 +34,20 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         updates.forEach(update -> {
             logger.info("Processing update: {}", update);
             // Process your updates here
+            if (update.message() != null) {
+                String message = update.message().text();
+                long chatId = update.message().chat().id();
+                if (message.equals("/start")) {
+                    notificationTaskService.sendMessage(chatId, "Привет! Чтобы оставить напоминание, нужно ввести сообщение в формате: \n" +
+                            "dd.MM.yyyy HH:mm Сообщение");
+                } else {
+                    notificationTaskService.addNotificationTask(chatId, message);
+                }
+            }
+
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
+
 
 }
